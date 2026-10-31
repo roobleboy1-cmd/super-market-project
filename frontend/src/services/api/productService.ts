@@ -14,13 +14,71 @@ export interface GetProductsParams {
   sortOrder?: 'asc' | 'desc'
 }
 
+export function mapProductFromBackend(p: any): Product {
+  const currentStock = p.currentStock ?? p.quantity ?? 0
+  const minStock = p.minStockLevel ?? p.minStock ?? 5
+  const status: Product['status'] = p.isArchived ? 'archived' : 'active'
+
+  return {
+    id: p._id || p.id,
+    name: p.name,
+    sku: p.sku,
+    barcode: p.barcode,
+    description: p.description || '',
+    categoryId: p.category?._id || p.category || p.categoryId || '',
+    categoryName: p.category?.name || p.categoryName || '',
+    brandId: p.brand?._id || p.brand || p.brandId || '',
+    brandName: p.brand?.name || p.brandName || '',
+    unit: p.unit?.symbol || p.unit?.name || p.unit || 'pcs',
+    costPrice: p.costPrice ?? 0,
+    sellingPrice: p.sellingPrice ?? 0,
+    quantity: currentStock,
+    minStockLevel: minStock,
+    supplierId: p.defaultSupplier?._id || p.supplierId || '',
+    supplierName: p.defaultSupplier?.companyName || p.defaultSupplier?.name || p.supplierName || '',
+    trackExpiry: p.isExpiringProduct ?? p.trackExpiry ?? true,
+    taxRate: p.taxRate ?? 5,
+    imageUrl: p.imageUrl || '',
+    status,
+    createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
+    updatedAt: p.updatedAt ? new Date(p.updatedAt).toISOString() : new Date().toISOString(),
+  }
+}
+
 export const productService = {
   async getProducts(params: GetProductsParams = {}): Promise<PaginatedResponse<Product>> {
     try {
-      const res = await api.get<PaginatedResponse<Product>>('/products', { params })
-      return res.data
+      const res = await api.get<any>('/products', {
+        params: {
+          search: params.search,
+          categoryId: params.categoryId !== 'all' ? params.categoryId : undefined,
+          brandId: params.brandId !== 'all' ? params.brandId : undefined,
+          page: params.page || 1,
+          limit: params.pageSize || 100,
+          sortBy: params.sortBy,
+          sortOrder: params.sortOrder,
+        }
+      })
+      const raw = res.data
+      const rawItems = Array.isArray(raw?.data) ? raw.data : (Array.isArray(raw) ? raw : (raw?.items || []))
+      const meta = raw?.meta || {}
+      let items = rawItems.map(mapProductFromBackend)
+
+      if (params.lowStockOnly) {
+        items = items.filter((p: Product) => p.quantity <= p.minStockLevel)
+      }
+      if (params.status && params.status !== 'all') {
+        items = items.filter((p: Product) => p.status === params.status)
+      }
+
+      return {
+        items,
+        total: meta.total ?? items.length,
+        page: meta.page ?? (params.page || 1),
+        pageSize: meta.limit ?? (params.pageSize || items.length),
+        totalPages: meta.pages ?? Math.max(1, Math.ceil((meta.total ?? items.length) / (meta.limit ?? 100))),
+      }
     } catch {
-      // Local fallback with real filtering, sorting, and pagination
       let filtered = [...localStore.products]
 
       if (params.search) {
@@ -50,7 +108,6 @@ export const productService = {
         filtered = filtered.filter((p) => p.quantity <= p.minStockLevel)
       }
 
-      // Sort
       const sortBy = params.sortBy || 'name'
       const sortOrder = params.sortOrder || 'asc'
       filtered.sort((a: any, b: any) => {
@@ -80,8 +137,8 @@ export const productService = {
 
   async getProductById(id: string): Promise<Product> {
     try {
-      const res = await api.get<{ data: Product }>(`/products/${id}`)
-      return res.data.data
+      const res = await api.get<any>('/products/' + id)
+      return mapProductFromBackend(res.data?.data || res.data)
     } catch {
       const found = localStore.products.find((p) => p.id === id)
       if (!found) throw new Error('Product not found')
@@ -90,20 +147,13 @@ export const productService = {
   },
 
   async createProduct(data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> {
-    // Check duplicate SKU or Barcode
-    const skuExists = localStore.products.some((p) => p.sku.toLowerCase() === data.sku.toLowerCase())
-    if (skuExists) throw new Error(`Product with SKU "${data.sku}" already exists.`)
-
-    const barcodeExists = localStore.products.some((p) => p.barcode === data.barcode)
-    if (barcodeExists) throw new Error(`Product with Barcode "${data.barcode}" already exists.`)
-
     try {
-      const res = await api.post<{ data: Product }>('/products', data)
-      return res.data.data
+      const res = await api.post<any>('/products', data)
+      return mapProductFromBackend(res.data?.data || res.data)
     } catch {
       const newProduct: Product = {
         ...data,
-        id: `prod-${Date.now()}`,
+        id: 'prod-' + Date.now(),
         categoryName: localStore.categories.find((c) => c.id === data.categoryId)?.name,
         brandName: localStore.brands.find((b) => b.id === data.brandId)?.name,
         supplierName: localStore.suppliers.find((s) => s.id === data.supplierId)?.name,
@@ -111,118 +161,51 @@ export const productService = {
         updatedAt: new Date().toISOString(),
       }
       localStore.products.unshift(newProduct)
-      localStore.logAction('System / Staff', 'Inventory Manager', 'CREATE_PRODUCT', 'Products', `Created ${newProduct.name} (${newProduct.sku})`)
       return newProduct
     }
   },
 
   async updateProduct(id: string, data: Partial<Product>): Promise<Product> {
-    // Validate duplicates excluding current product
-    if (data.sku) {
-      const skuExists = localStore.products.some((p) => p.id !== id && p.sku.toLowerCase() === data.sku!.toLowerCase())
-      if (skuExists) throw new Error(`Another product with SKU "${data.sku}" already exists.`)
-    }
-    if (data.barcode) {
-      const barcodeExists = localStore.products.some((p) => p.id !== id && p.barcode === data.barcode)
-      if (barcodeExists) throw new Error(`Another product with Barcode "${data.barcode}" already exists.`)
-    }
-
     try {
-      const res = await api.put<{ data: Product }>(`/products/${id}`, data)
-      return res.data.data
+      const res = await api.put<any>('/products/' + id, data)
+      return mapProductFromBackend(res.data?.data || res.data)
     } catch {
       const index = localStore.products.findIndex((p) => p.id === id)
       if (index === -1) throw new Error('Product not found')
-
       const updated = {
         ...localStore.products[index],
         ...data,
-        categoryName: data.categoryId
-          ? localStore.categories.find((c) => c.id === data.categoryId)?.name
-          : localStore.products[index].categoryName,
-        brandName: data.brandId
-          ? localStore.brands.find((b) => b.id === data.brandId)?.name
-          : localStore.products[index].brandName,
-        supplierName: data.supplierId
-          ? localStore.suppliers.find((s) => s.id === data.supplierId)?.name
-          : localStore.products[index].supplierName,
         updatedAt: new Date().toISOString(),
       }
       localStore.products[index] = updated
-      localStore.logAction('System / Staff', 'Inventory Manager', 'UPDATE_PRODUCT', 'Products', `Updated ${updated.name}`)
       return updated
     }
   },
 
   async deleteProduct(id: string): Promise<void> {
     try {
-      await api.delete(`/products/${id}`)
+      await api.delete('/products/' + id)
     } catch {
       const index = localStore.products.findIndex((p) => p.id === id)
       if (index !== -1) {
-        const prod = localStore.products[index]
         localStore.products.splice(index, 1)
-        localStore.logAction('System / Staff', 'Super Admin', 'DELETE_PRODUCT', 'Products', `Deleted ${prod.name}`)
       }
     }
   },
 
   async importProductsCsv(rows: Record<string, string>[]): Promise<{ importedCount: number; errors: string[] }> {
     try {
-      const res = await api.post<{ data: { importedCount: number; errors: string[] } }>('/products/import', { rows })
-      return res.data.data
+      const res = await api.post<any>('/products/import', { rows })
+      return res.data?.data || res.data
     } catch {
-      let count = 0
-      const errors: string[] = []
-
-      for (const row of rows) {
-        const name = row['Name'] || row['name']
-        const sku = row['SKU'] || row['sku']
-        const barcode = row['Barcode'] || row['barcode']
-        const costPrice = parseFloat(row['CostPrice'] || row['cost_price'] || '0')
-        const sellingPrice = parseFloat(row['SellingPrice'] || row['selling_price'] || '0')
-        const quantity = parseInt(row['Quantity'] || row['quantity'] || '0', 10)
-        const unit = (row['Unit'] || row['unit'] || 'pcs') as any
-
-        if (!name || !sku || !barcode) {
-          errors.push(`Row missing required Name, SKU or Barcode: ${JSON.stringify(row)}`)
-          continue
-        }
-
-        if (localStore.products.some((p) => p.sku === sku || p.barcode === barcode)) {
-          errors.push(`Skipped duplicate SKU/Barcode: ${sku} / ${barcode}`)
-          continue
-        }
-
-        localStore.products.push({
-          id: `prod-csv-${Date.now()}-${count}`,
-          name,
-          sku,
-          barcode,
-          unit,
-          costPrice: isNaN(costPrice) ? 0 : costPrice,
-          sellingPrice: isNaN(sellingPrice) ? 0 : sellingPrice,
-          quantity: isNaN(quantity) ? 0 : quantity,
-          minStockLevel: 10,
-          categoryId: localStore.categories[0]?.id || 'cat-1',
-          categoryName: localStore.categories[0]?.name || 'General',
-          trackExpiry: false,
-          taxRate: 5,
-          status: 'active',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        })
-        count++
-      }
-
-      return { importedCount: count, errors }
+      return { importedCount: 0, errors: [] }
     }
   },
 
   async getMovements(productId: string): Promise<StockMovement[]> {
     try {
-      const res = await api.get<{ data: StockMovement[] }>(`/products/${productId}/movements`)
-      return res.data.data
+      const res = await api.get<any>('/products/' + productId + '/movements')
+      return res.data?.data || res.data || []
     } catch {
       return localStore.stockMovements.filter((m) => m.productId === productId)
     }

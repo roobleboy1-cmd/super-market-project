@@ -5,8 +5,20 @@ import { localStore } from '../dataStore'
 export const customerService = {
   async getCustomers(search?: string): Promise<Customer[]> {
     try {
-      const res = await api.get<{ data: Customer[] }>('/customers', { params: { search } })
-      return res.data.data
+      const res = await api.get<any>('/customers', { params: { search } })
+      const raw = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : [])
+      return raw.map((c: any) => ({
+        id: c._id || c.id,
+        name: c.name,
+        phone: c.phone,
+        email: c.email || '',
+        address: c.address || '',
+        loyaltyPoints: c.loyaltyPoints ?? 0,
+        tier: (c.loyaltyPoints >= 500 ? 'Platinum' : c.loyaltyPoints >= 300 ? 'Gold' : c.loyaltyPoints >= 100 ? 'Silver' : 'Standard') as any,
+        totalSpent: c.totalSpent ?? 0,
+        totalVisits: c.totalVisits ?? Math.max(1, Math.floor((c.totalSpent ?? 0) / 25)),
+        createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
+      }))
     } catch {
       if (!search) return localStore.customers
       const q = search.toLowerCase()
@@ -18,8 +30,20 @@ export const customerService = {
 
   async getCustomerById(id: string): Promise<Customer> {
     try {
-      const res = await api.get<{ data: Customer }>(`/customers/${id}`)
-      return res.data.data
+      const res = await api.get<any>('/customers/' + id)
+      const c = res.data?.data || res.data
+      return {
+        id: c._id || c.id,
+        name: c.name,
+        phone: c.phone,
+        email: c.email || '',
+        address: c.address || '',
+        loyaltyPoints: c.loyaltyPoints ?? 0,
+        tier: (c.loyaltyPoints >= 500 ? 'Platinum' : c.loyaltyPoints >= 300 ? 'Gold' : c.loyaltyPoints >= 100 ? 'Silver' : 'Standard') as any,
+        totalSpent: c.totalSpent ?? 0,
+        totalVisits: c.totalVisits ?? 1,
+        createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
+      }
     } catch {
       const cust = localStore.customers.find((c) => c.id === id)
       if (!cust) throw new Error('Customer not found')
@@ -29,12 +53,24 @@ export const customerService = {
 
   async createCustomer(data: Omit<Customer, 'id' | 'createdAt' | 'loyaltyPoints' | 'tier' | 'totalSpent' | 'totalVisits'>): Promise<Customer> {
     try {
-      const res = await api.post<{ data: Customer }>('/customers', data)
-      return res.data.data
+      const res = await api.post<any>('/customers', data)
+      const c = res.data?.data || res.data
+      return {
+        id: c._id || c.id,
+        name: c.name,
+        phone: c.phone,
+        email: c.email || '',
+        address: c.address || '',
+        loyaltyPoints: 0,
+        tier: 'Standard',
+        totalSpent: 0,
+        totalVisits: 0,
+        createdAt: new Date().toISOString(),
+      }
     } catch {
       const newCust: Customer = {
         ...data,
-        id: `cust-${Date.now()}`,
+        id: 'cust-' + Date.now(),
         loyaltyPoints: 0,
         tier: 'Standard',
         totalSpent: 0,
@@ -48,8 +84,19 @@ export const customerService = {
 
   async updateCustomer(id: string, data: Partial<Customer>): Promise<Customer> {
     try {
-      const res = await api.put<{ data: Customer }>(`/customers/${id}`, data)
-      return res.data.data
+      const res = await api.put<any>('/customers/' + id, data)
+      const c = res.data?.data || res.data
+      return {
+        id: c._id || c.id,
+        name: c.name,
+        phone: c.phone,
+        email: c.email || '',
+        loyaltyPoints: c.loyaltyPoints ?? 0,
+        tier: 'Standard',
+        totalSpent: c.totalSpent ?? 0,
+        totalVisits: 1,
+        createdAt: new Date().toISOString(),
+      }
     } catch {
       const idx = localStore.customers.findIndex((c) => c.id === id)
       if (idx === -1) throw new Error('Customer not found')
@@ -61,7 +108,7 @@ export const customerService = {
 
   async deleteCustomer(id: string): Promise<void> {
     try {
-      await api.delete(`/customers/${id}`)
+      await api.delete('/customers/' + id)
     } catch {
       const idx = localStore.customers.findIndex((c) => c.id === id)
       if (idx !== -1) localStore.customers.splice(idx, 1)
@@ -70,32 +117,10 @@ export const customerService = {
 
   async getLoyaltyHistory(customerId: string): Promise<LoyaltyTransaction[]> {
     try {
-      const res = await api.get<{ data: LoyaltyTransaction[] }>(`/customers/${customerId}/loyalty`)
-      return res.data.data
+      const res = await api.get<any>('/customers/' + customerId + '/loyalty')
+      return res.data?.data || res.data || []
     } catch {
-      const cust = localStore.customers.find((c) => c.id === customerId)
-      return [
-        {
-          id: 'lt-1',
-          customerId,
-          type: 'earned',
-          points: 12,
-          balanceAfter: cust?.loyaltyPoints || 340,
-          invoiceNumber: 'INV-2026-00901',
-          description: 'Points earned on transaction INV-2026-00901',
-          createdAt: new Date(Date.now() - 7200000).toISOString(),
-        },
-        {
-          id: 'lt-2',
-          customerId,
-          type: 'earned',
-          points: 25,
-          balanceAfter: (cust?.loyaltyPoints || 340) - 12,
-          invoiceNumber: 'INV-2026-00840',
-          description: 'Points earned on transaction INV-2026-00840',
-          createdAt: new Date(Date.now() - 86400000).toISOString(),
-        },
-      ]
+      return []
     }
   },
 }

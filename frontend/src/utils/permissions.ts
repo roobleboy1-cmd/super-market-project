@@ -1,7 +1,34 @@
 import type { Role, User } from '@/types'
 
-export const ROLE_ALLOWED_PATHS: Record<Role, string[]> = {
+export function normalizeRole(role: string): Role {
+  if (role === 'Administrator') return 'Super Admin'
+  return (role as Role) || 'Super Admin'
+}
+
+export const ROLE_ALLOWED_PATHS: Record<Role, string[]> & Record<string, string[]> = {
   'Super Admin': [
+    '/',
+    '/pos',
+    '/sales',
+    '/returns',
+    '/shifts',
+    '/products',
+    '/categories',
+    '/inventory',
+    '/batches',
+    '/stock-counts',
+    '/suppliers',
+    '/purchases',
+    '/customers',
+    '/promotions',
+    '/expenses',
+    '/reports',
+    '/employees',
+    '/notifications',
+    '/activity-logs',
+    '/settings',
+  ],
+  Administrator: [
     '/',
     '/pos',
     '/sales',
@@ -87,8 +114,9 @@ export const ROLE_ALLOWED_PATHS: Record<Role, string[]> = {
   ],
 }
 
-export const ROLE_DEFAULT_REDIRECT: Record<Role, string> = {
+export const ROLE_DEFAULT_REDIRECT: Record<Role, string> & Record<string, string> = {
   'Super Admin': '/',
+  Administrator: '/',
   Manager: '/',
   Cashier: '/pos',
   'Inventory Manager': '/inventory',
@@ -97,10 +125,16 @@ export const ROLE_DEFAULT_REDIRECT: Record<Role, string> = {
 }
 
 export const ROLE_DESCRIPTIONS_SO: Record<
-  Role,
+  string,
   { title: string; job: string; color: string; bgBadge: string }
 > = {
   'Super Admin': {
+    title: 'Maamulaha Guud',
+    job: 'Dhammaan shaqooyinka nidaamka, settings-ka & shaqaalaha',
+    color: 'text-purple-700 dark:text-purple-300',
+    bgBadge: 'bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+  },
+  Administrator: {
     title: 'Maamulaha Guud',
     job: 'Dhammaan shaqooyinka nidaamka, settings-ka & shaqaalaha',
     color: 'text-purple-700 dark:text-purple-300',
@@ -138,8 +172,10 @@ export const ROLE_DESCRIPTIONS_SO: Record<
   },
 }
 
-export function isPathAllowedForRole(role: Role, path: string): boolean {
-  const allowed = ROLE_ALLOWED_PATHS[role] || []
+export function isPathAllowedForRole(role: any, path: string): boolean {
+  const normRole = normalizeRole(role)
+  if (normRole === 'Super Admin') return true
+  const allowed = ROLE_ALLOWED_PATHS[normRole] || []
   if (path === '/') return allowed.includes('/')
   return allowed.some((allowedPath) => {
     if (allowedPath === '/') return false

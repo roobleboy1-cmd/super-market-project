@@ -109,8 +109,37 @@ export const inventoryService = {
 
   async getBatches(): Promise<BatchLot[]> {
     try {
-      const res = await api.get<{ data: BatchLot[] }>('/inventory/batches')
-      return res.data.data
+      const res = await api.get<any>('/inventory/lots')
+      const raw = res.data?.data || res.data || []
+      const list = Array.isArray(raw) ? raw : (raw.lots || [])
+      const now = new Date()
+      return list.map((b: any) => {
+        const exp = b.expirationDate ? new Date(b.expirationDate) : null
+        const diffDays = exp ? (exp.getTime() - now.getTime()) / (1000 * 3600 * 24) : 999
+        let status: BatchLot['status'] = 'active'
+        if ((b.remainingQuantity ?? b.currentQuantity) <= 0) {
+          status = 'depleted'
+        } else if (diffDays < 0) {
+          status = 'expired'
+        } else if (diffDays <= 30) {
+          status = 'near_expiry'
+        }
+
+        return {
+          id: b._id || b.id,
+          batchNumber: b.batchNumber,
+          productId: b.productId?._id || b.productId || '',
+          productName: b.productId?.name || b.productName || 'Product',
+          sku: b.productId?.sku || b.sku || '',
+          expiryDate: exp ? exp.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+          receivedDate: b.receivedDate ? new Date(b.receivedDate).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+          initialQuantity: b.quantityReceived ?? b.initialQuantity ?? 0,
+          currentQuantity: b.remainingQuantity ?? b.currentQuantity ?? 0,
+          costPrice: b.unitCost ?? b.costPrice ?? 0,
+          supplierName: b.supplierId?.companyName || b.supplierId?.name || b.supplierName || 'Wholesale Supplier',
+          status,
+        }
+      })
     } catch {
       const now = new Date()
       return localStore.batches.map((b) => {

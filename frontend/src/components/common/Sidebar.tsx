@@ -32,7 +32,7 @@ import { cn } from '@/utils/cn'
 import { useAuthStore } from '@/stores/authStore'
 import { useLanguageStore } from '@/stores/languageStore'
 import type { Role } from '@/types'
-import { ROLE_DESCRIPTIONS_SO } from '@/utils/permissions'
+import { ROLE_DESCRIPTIONS_SO, normalizeRole } from '@/utils/permissions'
 
 interface NavSection {
   titleKey: string
@@ -202,7 +202,7 @@ export const Sidebar: React.FC<{
     onCloseMobile()
   }, [location.pathname])
 
-  const currentRole: Role = user?.role || 'Super Admin'
+  const currentRole: Role = normalizeRole(user?.role || 'Super Admin')
   const roleDesc = ROLE_DESCRIPTIONS_SO[currentRole]
 
   const renderNavList = (isMobileView: boolean = false) => (

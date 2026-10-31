@@ -23,7 +23,11 @@ export const authService = {
       if (res.data?.data?.accessToken) {
         localStorage.setItem('som_access_token', res.data.data.accessToken)
       }
-      return res.data.data.user
+      const u = res.data.data.user
+      if (u && ((u.role as any) === 'Administrator' || !u.role)) {
+        u.role = 'Super Admin'
+      }
+      return u
     } catch (err: any) {
       // If backend offline, verify against demo users
       const found = localStore.users.find(
@@ -55,7 +59,11 @@ export const authService = {
   async getMe(): Promise<User> {
     try {
       const res = await api.get<ApiResponse<{ user: User }>>('/auth/me')
-      return res.data.data.user
+      const u = res.data.data.user
+      if (u && ((u.role as any) === 'Administrator' || !u.role)) {
+        u.role = 'Super Admin'
+      }
+      return u
     } catch {
       return localStore.users[0] // Default fallback user
     }

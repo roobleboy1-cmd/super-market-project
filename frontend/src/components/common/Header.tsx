@@ -31,6 +31,7 @@ import {
   ROLE_DESCRIPTIONS_SO,
   ROLE_DEFAULT_REDIRECT,
   isPathAllowedForRole,
+  normalizeRole,
 } from '@/utils/permissions'
 
 const AVAILABLE_ROLES: { role: Role; demoEmail: string }[] = [
@@ -61,7 +62,7 @@ export const Header: React.FC<{
   const unreadNotificationsCount = localStore.notifications.filter((n) => !n.read).length
   const currentShift = localStore.currentShift
 
-  const currentRole: Role = user?.role || 'Super Admin'
+  const currentRole: Role = normalizeRole(user?.role || 'Super Admin')
   const currentRoleInfo = ROLE_DESCRIPTIONS_SO[currentRole]
 
   const handleLogout = async () => {
