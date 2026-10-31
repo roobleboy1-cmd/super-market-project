@@ -50,7 +50,7 @@ class LocalDataStore {
   products: Product[] = [...INITIAL_PRODUCTS]
   batches: BatchLot[] = [...INITIAL_BATCHES]
   customers: Customer[] = [...INITIAL_CUSTOMERS]
-  currentShift: CashierShift | null = { ...INITIAL_CURRENT_SHIFT }
+  currentShift: CashierShift | null = null
   shiftHistory: CashierShift[] = []
   sales: Sale[] = [...INITIAL_SALES]
   purchaseOrders: PurchaseOrder[] = [...INITIAL_PURCHASE_ORDERS]

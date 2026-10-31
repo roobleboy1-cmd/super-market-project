@@ -49,6 +49,13 @@ router.get(
   requirePermission('reports:financial'),
   ReportController.getProfitReport
 );
+
+router.get(
+  '/reports/financial',
+  authenticate,
+  requirePermission('reports:financial'),
+  ReportController.getProfitReport
+);
 router.get(
   '/reports/cash-reconciliation',
   authenticate,

@@ -19,7 +19,10 @@ export interface ResetPasswordPayload {
 export const authService = {
   async login(payload: LoginPayload): Promise<User> {
     try {
-      const res = await api.post<ApiResponse<{ user: User }>>('/auth/login', payload)
+      const res = await api.post<ApiResponse<{ user: User; accessToken?: string }>>('/auth/login', payload)
+      if (res.data?.data?.accessToken) {
+        localStorage.setItem('som_access_token', res.data.data.accessToken)
+      }
       return res.data.data.user
     } catch (err: any) {
       // If backend offline, verify against demo users

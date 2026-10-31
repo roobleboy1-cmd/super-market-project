@@ -26,11 +26,11 @@ function getStoredUser(): User | null {
 }
 
 export const useAuthStore = create<AuthState>((set, get) => {
-  const initialUser = getStoredUser() || localStore.users[0]
+  const initialUser = getStoredUser()
 
   return {
     user: initialUser,
-    isAuthenticated: true,
+    isAuthenticated: Boolean(initialUser),
     isLoading: false,
     error: null,
 
@@ -51,17 +51,17 @@ export const useAuthStore = create<AuthState>((set, get) => {
       try {
         await authService.logout()
       } finally {
-        localStorage.removeItem('som_current_user')
+        localStorage.removeItem('som_current_user'); localStorage.removeItem('som_access_token')
+        localStorage.removeItem('som_access_token')
         set({ user: null, isAuthenticated: false })
       }
     },
 
     checkSession: async () => {
       const stored = getStoredUser()
-      if (stored) {
-        // verify it still exists in localStore
-        const found = localStore.users.find((u) => u.id === stored.id) || stored
-        set({ user: found, isAuthenticated: true })
+      const token = typeof window !== 'undefined' ? localStorage.getItem('som_access_token') : null
+      if (stored && token) {
+        set({ user: stored, isAuthenticated: true })
         return
       }
 
@@ -71,9 +71,9 @@ export const useAuthStore = create<AuthState>((set, get) => {
         localStorage.setItem('som_current_user', JSON.stringify(user))
         set({ user, isAuthenticated: true, isLoading: false })
       } catch {
-        const fallback = localStore.users[0]
-        localStorage.setItem('som_current_user', JSON.stringify(fallback))
-        set({ user: fallback, isAuthenticated: true, isLoading: false })
+        localStorage.removeItem('som_current_user')
+        localStorage.removeItem('som_access_token')
+        set({ user: null, isAuthenticated: false, isLoading: false })
       }
     },
 

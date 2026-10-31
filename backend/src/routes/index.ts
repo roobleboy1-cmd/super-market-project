@@ -23,11 +23,13 @@ apiRouter.use('/', posRoutes);
 apiRouter.use('/purchases', purchaseRoutes);
 apiRouter.use('/returns', returnRoutes);
 apiRouter.use('/cash-shifts', shiftRoutes);
+apiRouter.use('/shifts', shiftRoutes);
 apiRouter.use('/customers', customerRoutes);
 apiRouter.use('/expenses', expenseRoutes);
 apiRouter.use('/settings', settingsRoutes);
 apiRouter.use('/', reportRoutes);
 apiRouter.use('/users', userRoutes);
+apiRouter.use('/employees', userRoutes);
 apiRouter.use('/notifications', notificationRoutes);
 apiRouter.use('/audit-logs', auditRoutes);
 

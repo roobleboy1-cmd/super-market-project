@@ -10,8 +10,8 @@ import { useToast } from '@/components/ui/Toast'
 import type { Role } from '@/types'
 
 export const LoginPage: React.FC = () => {
-  const [email, setEmail] = React.useState('admin@supermarket.so')
-  const [password, setPassword] = React.useState('Supermarket@2026')
+  const [email, setEmail] = React.useState('')
+  const [password, setPassword] = React.useState('')
   const [loading, setLoading] = React.useState(false)
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null)
 
@@ -42,32 +42,9 @@ export const LoginPage: React.FC = () => {
         navigate('/')
       }
     } catch (err: any) {
-      const msg = err.message || 'Invalid email or password'
+      const msg = err.message || (language === 'so' ? 'Email ama furaha sirta ah ayaa khaldan' : 'Invalid email or password')
       setErrorMsg(msg)
       error('Login Failed', msg)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleQuickLogin = async (demoEmail: string, roleName: Role) => {
-    setEmail(demoEmail)
-    setPassword('Supermarket@2026')
-    setLoading(true)
-    setErrorMsg(null)
-    try {
-      const user = await login({ email: demoEmail, password: 'Supermarket@2026' })
-      success(
-        language === 'so' ? `Waxaad ku gashay ${roleName}` : `Logged in as ${roleName}`,
-        language === 'so' ? `Kusoo dhowaaw ${user.name}` : `Welcome ${user.name}`
-      )
-      if (roleName === 'Cashier') {
-        navigate('/pos')
-      } else {
-        navigate('/')
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message)
     } finally {
       setLoading(false)
     }
@@ -175,63 +152,6 @@ export const LoginPage: React.FC = () => {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
-
-          {/* Quick Demo Role Switcher */}
-          <div className="mt-6 pt-6 border-t border-[#E2E8F0] dark:border-[#374151]">
-            <p className="text-[10px] font-extrabold text-[#64748B] dark:text-[#9CA3AF] uppercase tracking-widest text-center mb-3">
-              {language === 'so' ? '1-Guji ku tijaabi Doorarka (Roles)' : 'One-Click Role Demonstration'}
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('admin@supermarket.so', 'Super Admin')}
-                className="p-2 text-left rounded-xl border border-[#E2E8F0] dark:border-[#374151] hover:border-purple-500 dark:hover:border-purple-500 bg-[#F8FAFC] dark:bg-[#374151] text-[#111827] dark:text-[#F9FAFB] transition-all hover:scale-[1.02] cursor-pointer"
-              >
-                <div className="font-extrabold text-purple-600 dark:text-purple-400">Super Admin</div>
-                <div className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">Ahmed Noor</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('fadumo.mgr@supermarket.so', 'Manager')}
-                className="p-2 text-left rounded-xl border border-[#E2E8F0] dark:border-[#374151] hover:border-[#16A34A] dark:hover:border-[#16A34A] bg-[#F8FAFC] dark:bg-[#374151] text-[#111827] dark:text-[#F9FAFB] transition-all hover:scale-[1.02] cursor-pointer"
-              >
-                <div className="font-extrabold text-[#16A34A] dark:text-[#84CC16]">Manager</div>
-                <div className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">Fadumo Warsame</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('hassan.cashier@supermarket.so', 'Cashier')}
-                className="p-2 text-left rounded-xl border border-[#E2E8F0] dark:border-[#374151] hover:border-emerald-500 dark:hover:border-emerald-500 bg-[#F8FAFC] dark:bg-[#374151] text-[#111827] dark:text-[#F9FAFB] transition-all hover:scale-[1.02] cursor-pointer"
-              >
-                <div className="font-extrabold text-emerald-600 dark:text-emerald-400">Cashier</div>
-                <div className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">Hassan Ali</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('khadija.inv@supermarket.so', 'Inventory Manager')}
-                className="p-2 text-left rounded-xl border border-[#E2E8F0] dark:border-[#374151] hover:border-amber-500 dark:hover:border-amber-500 bg-[#F8FAFC] dark:bg-[#374151] text-[#111827] dark:text-[#F9FAFB] transition-all hover:scale-[1.02] cursor-pointer"
-              >
-                <div className="font-extrabold text-amber-600 dark:text-amber-400">Inventory Mgr</div>
-                <div className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">Khadija Osman</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('jama.acc@supermarket.so', 'Accountant')}
-                className="p-2 text-left rounded-xl border border-[#E2E8F0] dark:border-[#374151] hover:border-cyan-500 dark:hover:border-cyan-500 bg-[#F8FAFC] dark:bg-[#374151] text-[#111827] dark:text-[#F9FAFB] transition-all hover:scale-[1.02] cursor-pointer"
-              >
-                <div className="font-extrabold text-cyan-600 dark:text-cyan-400">Accountant</div>
-                <div className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">Mohamed Jama</div>
-              </button>
-              <button
-                type="button"
-                onClick={() => handleQuickLogin('sahra.audit@supermarket.so', 'Auditor')}
-                className="p-2 text-left rounded-xl border border-[#E2E8F0] dark:border-[#374151] hover:border-rose-500 dark:hover:border-rose-500 bg-[#F8FAFC] dark:bg-[#374151] text-[#111827] dark:text-[#F9FAFB] transition-all hover:scale-[1.02] cursor-pointer"
-              >
-                <div className="font-extrabold text-rose-600 dark:text-rose-400">Auditor</div>
-                <div className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">Sahra Abdi</div>
-              </button>
-            </div>
-          </div>
         </div>
 
         <p className="mt-4 text-center text-xs text-[#64748B] dark:text-[#9CA3AF] font-medium">

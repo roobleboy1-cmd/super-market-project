@@ -29,6 +29,14 @@ router.post(
   validate({ body: checkoutSchema }),
   PosController.checkout
 );
+
+router.post(
+  '/pos/checkout',
+  authenticate,
+  requirePermission('sales:checkout'),
+  validate({ body: checkoutSchema }),
+  PosController.checkout
+);
 router.post(
   '/sales/:id/void',
   authenticate,

@@ -16,6 +16,13 @@ router.get(
   requirePermission('inventory:view'),
   InventoryController.getSummary
 );
+
+router.get(
+  '/overview',
+  authenticate,
+  requirePermission('inventory:view'),
+  InventoryController.getSummary
+);
 router.get(
   '/lots',
   authenticate,

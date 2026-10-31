@@ -1,6 +1,6 @@
 import axios, { type AxiosError, type AxiosInstance, type AxiosResponse } from 'axios'
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1'
 
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -15,8 +15,10 @@ export const api: AxiosInstance = axios.create({
 // Request interceptor: add timestamp or client metadata
 api.interceptors.request.use(
   (config) => {
-    // Note: Per requirements, never store auth tokens in localStorage.
-    // Auth cookies are automatically attached by the browser via withCredentials.
+    const token = typeof window !== 'undefined' ? localStorage.getItem('som_access_token') : null
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
     return config
   },
   (error) => Promise.reject(error)
