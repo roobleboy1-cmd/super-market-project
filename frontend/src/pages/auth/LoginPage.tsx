@@ -50,6 +50,31 @@ export const LoginPage: React.FC = () => {
     }
   }
 
+  const handleQuickLogin = async (loginEmail: string, roleName: string) => {
+    setEmail(loginEmail)
+    setPassword('Supermarket@2026')
+    setLoading(true)
+    setErrorMsg(null)
+    try {
+      const user = await login({ email: loginEmail, password: 'Supermarket@2026' })
+      success(
+        language === 'so' ? `Kusoo dhowaaw, ${user.name}!` : `Welcome back, ${user.name}!`,
+        language === 'so' ? `Waxaad ku gashay: ${roleName}` : `Logged in as ${roleName}`
+      )
+      if (roleName === 'Cashier' || user.role === 'Cashier') {
+        navigate('/pos')
+      } else {
+        navigate('/')
+      }
+    } catch (err: any) {
+      const msg = err.message || 'Login failed'
+      setErrorMsg(msg)
+      error('Login Failed', msg)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-[#F8FAFC] dark:bg-[#111827] transition-colors relative">
       {/* Top right quick controls for language and theme */}
@@ -152,6 +177,74 @@ export const LoginPage: React.FC = () => {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </form>
+
+          {/* One-Click Direct Login for All Users */}
+          <div className="mt-6 pt-6 border-t border-[#E2E8F0] dark:border-[#374151]">
+            <p className="text-[10px] font-extrabold text-[#64748B] dark:text-[#9CA3AF] uppercase tracking-widest text-center mb-3">
+              {language === 'so' ? '⚡ 1-GUJI KU GAL (DHAMMAAN SHAQAALAHA)' : '⚡ ONE-CLICK LOGIN (ALL USERS)'}
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('admin@supermarket.so', 'Super Admin')}
+                disabled={loading}
+                className="p-2 text-left rounded-xl border border-[#E2E8F0] dark:border-[#374151] hover:border-[#16A34A] dark:hover:border-[#16A34A] bg-[#F8FAFC] dark:bg-[#111827] text-[#111827] dark:text-[#F9FAFB] transition-all hover:scale-[1.02] active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <div className="font-extrabold text-[#16A34A] dark:text-[#84CC16]">Super Admin</div>
+                <div className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">Ahmed Noor</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('fadumo.mgr@supermarket.so', 'Manager')}
+                disabled={loading}
+                className="p-2 text-left rounded-xl border border-[#E2E8F0] dark:border-[#374151] hover:border-[#166534] dark:hover:border-[#84CC16] bg-[#F8FAFC] dark:bg-[#111827] text-[#111827] dark:text-[#F9FAFB] transition-all hover:scale-[1.02] active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <div className="font-extrabold text-[#166534] dark:text-[#84CC16]">Manager</div>
+                <div className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">Fadumo Warsame</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('hassan.cashier@supermarket.so', 'Cashier')}
+                disabled={loading}
+                className="p-2 text-left rounded-xl border border-[#E2E8F0] dark:border-[#374151] hover:border-[#84CC16] dark:hover:border-[#84CC16] bg-[#F8FAFC] dark:bg-[#111827] text-[#111827] dark:text-[#F9FAFB] transition-all hover:scale-[1.02] active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <div className="font-extrabold text-[#84CC16] dark:text-[#84CC16]">Cashier</div>
+                <div className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">Hassan Ali</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('khadija.inv@supermarket.so', 'Inventory Manager')}
+                disabled={loading}
+                className="p-2 text-left rounded-xl border border-[#E2E8F0] dark:border-[#374151] hover:border-[#F97316] dark:hover:border-[#F97316] bg-[#F8FAFC] dark:bg-[#111827] text-[#111827] dark:text-[#F9FAFB] transition-all hover:scale-[1.02] active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <div className="font-extrabold text-[#F97316] dark:text-[#F97316]">Inventory Mgr</div>
+                <div className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">Khadija Osman</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('jama.acc@supermarket.so', 'Accountant')}
+                disabled={loading}
+                className="p-2 text-left rounded-xl border border-[#E2E8F0] dark:border-[#374151] hover:border-cyan-500 dark:hover:border-cyan-500 bg-[#F8FAFC] dark:bg-[#111827] text-[#111827] dark:text-[#F9FAFB] transition-all hover:scale-[1.02] active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <div className="font-extrabold text-cyan-600 dark:text-cyan-400">Accountant</div>
+                <div className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">Mohamed Jama</div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickLogin('sahra.audit@supermarket.so', 'Auditor')}
+                disabled={loading}
+                className="p-2 text-left rounded-xl border border-[#E2E8F0] dark:border-[#374151] hover:border-rose-500 dark:hover:border-rose-500 bg-[#F8FAFC] dark:bg-[#111827] text-[#111827] dark:text-[#F9FAFB] transition-all hover:scale-[1.02] active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <div className="font-extrabold text-rose-600 dark:text-rose-400">Auditor</div>
+                <div className="text-[10px] text-[#64748B] dark:text-[#9CA3AF]">Sahra Abdi</div>
+              </button>
+            </div>
+          </div>
         </div>
 
         <p className="mt-4 text-center text-xs text-[#64748B] dark:text-[#9CA3AF] font-medium">
