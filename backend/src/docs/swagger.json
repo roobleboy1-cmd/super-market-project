@@ -1,0 +1,410 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Single Supermarket Management System REST API",
+    "version": "1.0.0",
+    "description": "Production-grade, modular REST API for a single supermarket at one physical location. Built with Node.js, Express, TypeScript, MongoDB, and Mongoose."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api/v1",
+      "description": "Local Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter JWT access token in Authorization header: Bearer <token>"
+      },
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "access_token",
+        "description": "HttpOnly session access token"
+      }
+    },
+    "schemas": {
+      "ApiResponseSuccess": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "data": { "type": "object" },
+          "meta": { "type": "object" }
+        }
+      },
+      "ApiResponseError": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": { "type": "string", "example": "VALIDATION_ERROR" },
+              "message": { "type": "string", "example": "Invalid input provided" },
+              "details": { "type": "object" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    { "bearerAuth": [] },
+    { "cookieAuth": [] }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "User login",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "example": "admin@supermarket.local" },
+                  "password": { "type": "string", "example": "Admin123!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Login successful" },
+          "401": { "description": "Invalid credentials" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "User logout",
+        "responses": {
+          "200": { "description": "Logged out successfully" }
+        }
+      }
+    },
+    "/auth/me": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Get authenticated user profile",
+        "responses": {
+          "200": { "description": "User profile returned" }
+        }
+      }
+    },
+    "/auth/csrf": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Get fresh CSRF token",
+        "security": [],
+        "responses": {
+          "200": { "description": "CSRF token returned" }
+        }
+      }
+    },
+    "/auth/forgot-password": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Request password reset email",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "example": "user@supermarket.local" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password reset instructions sent" }
+        }
+      }
+    },
+    "/auth/reset-password": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Reset password using token",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token", "newPassword"],
+                "properties": {
+                  "token": { "type": "string" },
+                  "newPassword": { "type": "string", "example": "NewSecretPassword123!" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Password reset successful" }
+        }
+      }
+    },
+    "/products": {
+      "get": {
+        "tags": ["Products & Catalog"],
+        "summary": "List products with search, filtering, and pagination",
+        "responses": {
+          "200": { "description": "List of products" }
+        }
+      },
+      "post": {
+        "tags": ["Products & Catalog"],
+        "summary": "Create new product",
+        "responses": {
+          "201": { "description": "Product created" }
+        }
+      }
+    },
+    "/products/{id}": {
+      "get": {
+        "tags": ["Products & Catalog"],
+        "summary": "Get product details by ID",
+        "responses": {
+          "200": { "description": "Product details" }
+        }
+      },
+      "patch": {
+        "tags": ["Products & Catalog"],
+        "summary": "Update product",
+        "responses": {
+          "200": { "description": "Product updated" }
+        }
+      },
+      "delete": {
+        "tags": ["Products & Catalog"],
+        "summary": "Delete or safely archive product",
+        "responses": {
+          "200": { "description": "Product deleted or archived" }
+        }
+      }
+    },
+    "/products/import": {
+      "post": {
+        "tags": ["Products & Catalog"],
+        "summary": "Bulk import products from CSV",
+        "responses": {
+          "200": { "description": "CSV import report" }
+        }
+      }
+    },
+    "/products/export": {
+      "get": {
+        "tags": ["Products & Catalog"],
+        "summary": "Export products catalog as CSV",
+        "responses": {
+          "200": { "description": "CSV file download" }
+        }
+      }
+    },
+    "/products/{id}/barcode-label": {
+      "get": {
+        "tags": ["Products & Catalog"],
+        "summary": "Get printable barcode label SVG",
+        "responses": {
+          "200": { "description": "Barcode label SVG payload" }
+        }
+      }
+    },
+    "/inventory/summary": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "Inventory overview and valuation summary",
+        "responses": {
+          "200": { "description": "Inventory metrics" }
+        }
+      }
+    },
+    "/inventory/lots": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "Get inventory lots and batches",
+        "responses": {
+          "200": { "description": "Inventory lots" }
+        }
+      }
+    },
+    "/inventory/low-stock": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "Get products at or below minimum stock level",
+        "responses": {
+          "200": { "description": "Low stock products" }
+        }
+      }
+    },
+    "/inventory/expiring": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "Get products expiring within configured window",
+        "responses": {
+          "200": { "description": "Expiring products" }
+        }
+      }
+    },
+    "/inventory/movements": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "Get inventory stock movement ledger",
+        "responses": {
+          "200": { "description": "Movement records" }
+        }
+      }
+    },
+    "/inventory/adjustments": {
+      "post": {
+        "tags": ["Inventory"],
+        "summary": "Make manual stock adjustment",
+        "responses": {
+          "200": { "description": "Adjustment recorded" }
+        }
+      }
+    },
+    "/inventory/counts": {
+      "get": {
+        "tags": ["Inventory"],
+        "summary": "List physical stock counts",
+        "responses": { "200": { "description": "Stock count records" } }
+      },
+      "post": {
+        "tags": ["Inventory"],
+        "summary": "Create new physical stock count",
+        "responses": { "201": { "description": "Stock count created" } }
+      }
+    },
+    "/inventory/counts/{id}/submit": {
+      "post": {
+        "tags": ["Inventory"],
+        "summary": "Submit physical count for manager approval",
+        "responses": { "200": { "description": "Submitted" } }
+      }
+    },
+    "/inventory/counts/{id}/approve": {
+      "post": {
+        "tags": ["Inventory"],
+        "summary": "Approve physical count and adjust system stock",
+        "responses": { "200": { "description": "Approved and reconciled" } }
+      }
+    },
+    "/sales": {
+      "get": {
+        "tags": ["Sales & POS"],
+        "summary": "List sales transactions",
+        "responses": { "200": { "description": "List of sales" } }
+      }
+    },
+    "/sales/checkout": {
+      "post": {
+        "tags": ["Sales & POS"],
+        "summary": "Authoritative POS checkout with idempotency and FEFO lot deduction",
+        "responses": { "201": { "description": "Sale completed" } }
+      }
+    },
+    "/sales/{id}/void": {
+      "post": {
+        "tags": ["Sales & POS"],
+        "summary": "Void a completed sale and restock inventory",
+        "responses": { "200": { "description": "Sale voided" } }
+      }
+    },
+    "/sales/{id}/receipt": {
+      "get": {
+        "tags": ["Sales & POS"],
+        "summary": "Get printable receipt data",
+        "responses": { "200": { "description": "Receipt payload" } }
+      }
+    },
+    "/sales/reconcile-offline": {
+      "post": {
+        "tags": ["Sales & POS"],
+        "summary": "Reconcile offline queued POS sales",
+        "responses": { "200": { "description": "Reconciliation status report" } }
+      }
+    },
+    "/purchases": {
+      "get": {
+        "tags": ["Purchases & Suppliers"],
+        "summary": "List purchase orders",
+        "responses": { "200": { "description": "Purchase orders" } }
+      },
+      "post": {
+        "tags": ["Purchases & Suppliers"],
+        "summary": "Create draft purchase order",
+        "responses": { "201": { "description": "Purchase order created" } }
+      }
+    },
+    "/purchases/{id}/receive": {
+      "post": {
+        "tags": ["Purchases & Suppliers"],
+        "summary": "Receive goods and create inventory batches",
+        "responses": { "200": { "description": "Goods received into stock" } }
+      }
+    },
+    "/returns/sales/{saleId}": {
+      "post": {
+        "tags": ["Returns & Refunds"],
+        "summary": "Process customer return with product inspection",
+        "responses": { "201": { "description": "Return processed" } }
+      }
+    },
+    "/cash-shifts/open": {
+      "post": {
+        "tags": ["Cashier Shifts"],
+        "summary": "Open cashier shift register",
+        "responses": { "201": { "description": "Shift opened" } }
+      }
+    },
+    "/cash-shifts/{id}/close": {
+      "post": {
+        "tags": ["Cashier Shifts"],
+        "summary": "Close shift with counted cash balance",
+        "responses": { "200": { "description": "Shift closed and balanced" } }
+      }
+    },
+    "/dashboard/stats": {
+      "get": {
+        "tags": ["Reports & Analytics"],
+        "summary": "Today's dashboard summary metrics",
+        "responses": { "200": { "description": "Dashboard metrics" } }
+      }
+    },
+    "/reports/profit": {
+      "get": {
+        "tags": ["Reports & Analytics"],
+        "summary": "Profit & Loss report distinguishing Gross, COGS, and Net Operating Result",
+        "responses": { "200": { "description": "P&L report" } }
+      }
+    },
+    "/settings": {
+      "get": {
+        "tags": ["Store Settings"],
+        "summary": "Get supermarket settings",
+        "responses": { "200": { "description": "Store settings" } }
+      },
+      "patch": {
+        "tags": ["Store Settings"],
+        "summary": "Update supermarket settings",
+        "responses": { "200": { "description": "Settings updated" } }
+      }
+    }
+  }
+}
