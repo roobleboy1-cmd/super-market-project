@@ -51,11 +51,17 @@ npm run preview
 
 ---
 
-## 🎨 Professional Design System
+## 🎨 Professional Supermarket Design System
 
-- **Light Mode**: White card surfaces (`#ffffff`), light gray page canvas (`#f8fafc`), royal blue primary accents (`#2563eb`), slate borders.
-- **Dark Mode**: Dark navy surfaces (`#090d16` / `#0f172a`), readable high-contrast typography, accessible blue active badges.
-- **Theme Selection**: Toggle seamlessly between **Light**, **Dark**, and **System** mode with instant persistent storage.
+- **Modern Supermarket Palette**:
+  - Primary Brand Green: `#16A34A`
+  - Dark Green Header / Accents: `#166534`
+  - Fresh Lime Highlights: `#84CC16`
+  - Accent Orange for CTAs & Promotions: `#F97316`
+- **Light Mode**: Crisp white card surfaces (`#FFFFFF`), light canvas (`#F8FAFC`), rich green brand accents, and clean borders (`#E2E8F0`).
+- **Dark Mode**: Sleek dark slate canvas (`#111827`), elevated dark card surfaces (`#1F2937`), high-contrast text (`#F9FAFB`), and vibrant green/orange indicators.
+- **Instant Theme Toggle**: Interactive Sun/Moon button in the top navigation with instant switching, zero flicker, and persistent `localStorage` synchronization.
+- **Dual-Language Translation**: Full instant toggle between Somali (🇸🇴) and English (🇬🇧) across all modules.
 - **Global Search & Command Palette**: Trigger with <kbd>Ctrl</kbd> + <kbd>K</kbd> or <kbd>Cmd</kbd> + <kbd>K</kbd> anywhere in the application.
 
 ---
