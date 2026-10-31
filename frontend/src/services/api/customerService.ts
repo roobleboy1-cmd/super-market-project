@@ -52,67 +52,54 @@ export const customerService = {
   },
 
   async createCustomer(data: Omit<Customer, 'id' | 'createdAt' | 'loyaltyPoints' | 'tier' | 'totalSpent' | 'totalVisits'>): Promise<Customer> {
-    try {
-      const res = await api.post<any>('/customers', data)
-      const c = res.data?.data || res.data
-      return {
-        id: c._id || c.id,
-        name: c.name,
-        phone: c.phone,
-        email: c.email || '',
-        address: c.address || '',
-        loyaltyPoints: 0,
-        tier: 'Standard',
-        totalSpent: 0,
-        totalVisits: 0,
-        createdAt: new Date().toISOString(),
-      }
-    } catch {
-      const newCust: Customer = {
-        ...data,
-        id: 'cust-' + Date.now(),
-        loyaltyPoints: 0,
-        tier: 'Standard',
-        totalSpent: 0,
-        totalVisits: 0,
-        createdAt: new Date().toISOString(),
-      }
-      localStore.customers.unshift(newCust)
-      return newCust
+    const payload: any = {
+      name: data.name,
+      phone: data.phone,
+      email: data.email || undefined,
+      address: data.address || undefined,
+    }
+    const res = await api.post<any>('/customers', payload)
+    const c = res.data?.data || res.data
+    return {
+      id: c._id || c.id,
+      name: c.name,
+      phone: c.phone,
+      email: c.email || '',
+      address: c.address || '',
+      loyaltyPoints: c.loyaltyPoints ?? 0,
+      tier: 'Standard',
+      totalSpent: c.totalSpent ?? 0,
+      totalVisits: c.totalVisits ?? 0,
+      createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
     }
   },
 
   async updateCustomer(id: string, data: Partial<Customer>): Promise<Customer> {
-    try {
-      const res = await api.put<any>('/customers/' + id, data)
-      const c = res.data?.data || res.data
-      return {
-        id: c._id || c.id,
-        name: c.name,
-        phone: c.phone,
-        email: c.email || '',
-        loyaltyPoints: c.loyaltyPoints ?? 0,
-        tier: 'Standard',
-        totalSpent: c.totalSpent ?? 0,
-        totalVisits: 1,
-        createdAt: new Date().toISOString(),
-      }
-    } catch {
-      const idx = localStore.customers.findIndex((c) => c.id === id)
-      if (idx === -1) throw new Error('Customer not found')
-      const updated = { ...localStore.customers[idx], ...data }
-      localStore.customers[idx] = updated
-      return updated
+    const payload: any = { ...data }
+    delete payload.id
+    delete payload.createdAt
+    delete payload.totalSpent
+    delete payload.totalVisits
+    delete payload.tier
+
+    const res = await api.patch<any>('/customers/' + id, payload)
+    const c = res.data?.data || res.data
+    return {
+      id: c._id || c.id,
+      name: c.name,
+      phone: c.phone,
+      email: c.email || '',
+      address: c.address || '',
+      loyaltyPoints: c.loyaltyPoints ?? 0,
+      tier: 'Standard',
+      totalSpent: c.totalSpent ?? 0,
+      totalVisits: 1,
+      createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
     }
   },
 
   async deleteCustomer(id: string): Promise<void> {
-    try {
-      await api.delete('/customers/' + id)
-    } catch {
-      const idx = localStore.customers.findIndex((c) => c.id === id)
-      if (idx !== -1) localStore.customers.splice(idx, 1)
-    }
+    await api.delete('/customers/' + id)
   },
 
   async getLoyaltyHistory(customerId: string): Promise<LoyaltyTransaction[]> {

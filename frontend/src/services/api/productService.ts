@@ -147,59 +147,53 @@ export const productService = {
   },
 
   async createProduct(data: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<Product> {
-    try {
-      const res = await api.post<any>('/products', data)
-      return mapProductFromBackend(res.data?.data || res.data)
-    } catch {
-      const newProduct: Product = {
-        ...data,
-        id: 'prod-' + Date.now(),
-        categoryName: localStore.categories.find((c) => c.id === data.categoryId)?.name,
-        brandName: localStore.brands.find((b) => b.id === data.brandId)?.name,
-        supplierName: localStore.suppliers.find((s) => s.id === data.supplierId)?.name,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }
-      localStore.products.unshift(newProduct)
-      return newProduct
+    const payload: any = {
+      name: data.name,
+      sku: data.sku,
+      barcode: data.barcode,
+      description: data.description,
+      category: data.categoryId,
+      brand: data.brandId || undefined,
+      defaultSupplier: data.supplierId || undefined,
+      unit: data.unit,
+      costPrice: data.costPrice,
+      sellingPrice: data.sellingPrice,
+      currentStock: data.quantity,
+      minStockLevel: data.minStockLevel,
+      taxRate: data.taxRate,
+      isExpiringProduct: data.trackExpiry,
     }
+
+    const res = await api.post<any>('/products', payload)
+    const saved = mapProductFromBackend(res.data?.data || res.data)
+    return saved
   },
 
   async updateProduct(id: string, data: Partial<Product>): Promise<Product> {
-    try {
-      const res = await api.put<any>('/products/' + id, data)
-      return mapProductFromBackend(res.data?.data || res.data)
-    } catch {
-      const index = localStore.products.findIndex((p) => p.id === id)
-      if (index === -1) throw new Error('Product not found')
-      const updated = {
-        ...localStore.products[index],
-        ...data,
-        updatedAt: new Date().toISOString(),
-      }
-      localStore.products[index] = updated
-      return updated
-    }
+    const payload: any = { ...data }
+    if (data.categoryId) payload.category = data.categoryId
+    if (data.brandId !== undefined) payload.brand = data.brandId || undefined
+    if (data.supplierId !== undefined) payload.defaultSupplier = data.supplierId || undefined
+    if (data.quantity !== undefined) payload.currentStock = data.quantity
+    if (data.trackExpiry !== undefined) payload.isExpiringProduct = data.trackExpiry
+    delete payload.id
+    delete payload.categoryId
+    delete payload.brandId
+    delete payload.supplierId
+    delete payload.quantity
+    delete payload.trackExpiry
+
+    const res = await api.patch<any>('/products/' + id, payload)
+    return mapProductFromBackend(res.data?.data || res.data)
   },
 
   async deleteProduct(id: string): Promise<void> {
-    try {
-      await api.delete('/products/' + id)
-    } catch {
-      const index = localStore.products.findIndex((p) => p.id === id)
-      if (index !== -1) {
-        localStore.products.splice(index, 1)
-      }
-    }
+    await api.delete('/products/' + id)
   },
 
   async importProductsCsv(rows: Record<string, string>[]): Promise<{ importedCount: number; errors: string[] }> {
-    try {
-      const res = await api.post<any>('/products/import', { rows })
-      return res.data?.data || res.data
-    } catch {
-      return { importedCount: 0, errors: [] }
-    }
+    const res = await api.post<any>('/products/import', { rows })
+    return res.data?.data || res.data
   },
 
   async getMovements(productId: string): Promise<StockMovement[]> {

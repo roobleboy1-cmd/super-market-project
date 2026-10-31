@@ -407,7 +407,7 @@ export const DashboardPage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="font-extrabold text-[#111827] dark:text-[#F9FAFB]">
-                      ${item.total.toFixed(2)}
+                      ${(item.total ?? 0).toFixed(2)}
                     </span>
                     <span className="text-[#94A3B8] text-[11px] font-bold">
                       ({item.percentage}%)
@@ -458,7 +458,7 @@ export const DashboardPage: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-extrabold text-[#111827] dark:text-[#F9FAFB]">
-                      ${sale.total.toFixed(2)}
+                      ${(sale.total ?? 0).toFixed(2)}
                     </p>
                     <Badge variant="success" size="sm" dot className="mt-0.5">
                       {sale.payments[0]?.method || 'Paid'}
@@ -505,7 +505,7 @@ export const DashboardPage: React.FC = () => {
                       {prod.unitsSold} {language === 'so' ? 'xabbad' : 'sold'}
                     </p>
                     <p className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">
-                      ${prod.revenue.toFixed(2)} rev
+                      ${(prod.revenue ?? 0).toFixed(2)} rev
                     </p>
                   </div>
                 </div>

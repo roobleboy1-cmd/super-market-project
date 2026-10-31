@@ -21,59 +21,38 @@ export const categoryBrandService = {
   },
 
   async createCategory(data: { name: string; code: string; description?: string }): Promise<Category> {
-    try {
-      const res = await api.post<any>('/categories', data)
-      const c = res.data?.data || res.data
-      return {
-        id: c._id || c.id,
-        name: c.name,
-        code: c.code,
-        description: c.description || '',
-        productCount: 0,
-        createdAt: new Date().toISOString(),
-      }
-    } catch {
-      const newCat: Category = {
-        id: 'cat-' + Date.now(),
-        name: data.name,
-        code: data.code.toUpperCase(),
-        description: data.description,
-        productCount: 0,
-        createdAt: new Date().toISOString(),
-      }
-      localStore.categories.push(newCat)
-      return newCat
+    const res = await api.post<any>('/categories', data)
+    const c = res.data?.data || res.data
+    return {
+      id: c._id || c.id,
+      name: c.name,
+      code: c.code,
+      description: c.description || '',
+      productCount: 0,
+      createdAt: new Date().toISOString(),
     }
   },
 
   async updateCategory(id: string, data: Partial<Category>): Promise<Category> {
-    try {
-      const res = await api.put<any>('/categories/' + id, data)
-      const c = res.data?.data || res.data
-      return {
-        id: c._id || c.id,
-        name: c.name,
-        code: c.code,
-        description: c.description || '',
-        productCount: c.productCount ?? 0,
-        createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
-      }
-    } catch {
-      const idx = localStore.categories.findIndex((c) => c.id === id)
-      if (idx === -1) throw new Error('Category not found')
-      const updated = { ...localStore.categories[idx], ...data }
-      localStore.categories[idx] = updated
-      return updated
+    const payload: any = { ...data }
+    delete payload.id
+    delete payload.createdAt
+    delete payload.productCount
+
+    const res = await api.patch<any>('/categories/' + id, payload)
+    const c = res.data?.data || res.data
+    return {
+      id: c._id || c.id,
+      name: c.name,
+      code: c.code,
+      description: c.description || '',
+      productCount: c.productCount ?? 0,
+      createdAt: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
     }
   },
 
   async deleteCategory(id: string): Promise<void> {
-    try {
-      await api.delete('/categories/' + id)
-    } catch {
-      const idx = localStore.categories.findIndex((c) => c.id === id)
-      if (idx !== -1) localStore.categories.splice(idx, 1)
-    }
+    await api.delete('/categories/' + id)
   },
 
   async getBrands(): Promise<Brand[]> {
@@ -94,58 +73,37 @@ export const categoryBrandService = {
   },
 
   async createBrand(data: { name: string; code?: string; description?: string }): Promise<Brand> {
-    try {
-      const res = await api.post<any>('/brands', data)
-      const b = res.data?.data || res.data
-      return {
-        id: b._id || b.id,
-        name: b.name,
-        code: b.code || data.code || b.name.slice(0, 4).toUpperCase(),
-        description: b.description || '',
-        productCount: 0,
-        createdAt: new Date().toISOString(),
-      }
-    } catch {
-      const newBrand: Brand = {
-        id: 'brand-' + Date.now(),
-        name: data.name,
-        code: data.code || data.name.slice(0, 4).toUpperCase(),
-        description: data.description,
-        productCount: 0,
-        createdAt: new Date().toISOString(),
-      }
-      localStore.brands.push(newBrand)
-      return newBrand
+    const res = await api.post<any>('/brands', data)
+    const b = res.data?.data || res.data
+    return {
+      id: b._id || b.id,
+      name: b.name,
+      code: b.code || b.name.slice(0, 4).toUpperCase(),
+      description: b.description || '',
+      productCount: 0,
+      createdAt: new Date().toISOString(),
     }
   },
 
   async updateBrand(id: string, data: Partial<Brand>): Promise<Brand> {
-    try {
-      const res = await api.put<any>('/brands/' + id, data)
-      const b = res.data?.data || res.data
-      return {
-        id: b._id || b.id,
-        name: b.name,
-        code: b.code || b.name.slice(0, 4).toUpperCase(),
-        description: b.description || '',
-        productCount: b.productCount ?? 0,
-        createdAt: b.createdAt ? new Date(b.createdAt).toISOString() : new Date().toISOString(),
-      }
-    } catch {
-      const idx = localStore.brands.findIndex((b) => b.id === id)
-      if (idx === -1) throw new Error('Brand not found')
-      const updated = { ...localStore.brands[idx], ...data }
-      localStore.brands[idx] = updated
-      return updated
+    const payload: any = { ...data }
+    delete payload.id
+    delete payload.createdAt
+    delete payload.productCount
+
+    const res = await api.patch<any>('/brands/' + id, payload)
+    const b = res.data?.data || res.data
+    return {
+      id: b._id || b.id,
+      name: b.name,
+      code: b.code || b.name.slice(0, 4).toUpperCase(),
+      description: b.description || '',
+      productCount: b.productCount ?? 0,
+      createdAt: b.createdAt ? new Date(b.createdAt).toISOString() : new Date().toISOString(),
     }
   },
 
   async deleteBrand(id: string): Promise<void> {
-    try {
-      await api.delete('/brands/' + id)
-    } catch {
-      const idx = localStore.brands.findIndex((b) => b.id === id)
-      if (idx !== -1) localStore.brands.splice(idx, 1)
-    }
+    await api.delete('/brands/' + id)
   },
 }

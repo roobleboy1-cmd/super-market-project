@@ -260,7 +260,7 @@ export const SalesHistoryPage: React.FC = () => {
                   {selectedSaleForDetails.items.map((i, idx) => (
                     <tr key={idx}>
                       <td className="p-2 font-semibold text-[#111827] dark:text-[#F9FAFB]">
-                        {i.name}
+                        {i.productName || i.name}
                       </td>
                       <td className="p-2 text-center">{i.quantity}</td>
                       <td className="p-2 text-right">${i.unitPrice.toFixed(2)}</td>

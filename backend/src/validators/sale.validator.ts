@@ -7,7 +7,22 @@ export const checkoutItemSchema = z.object({
 });
 
 export const checkoutPaymentSchema = z.object({
-  method: z.enum(['CASH', 'CARD', 'EVC_PLUS', 'EDAHAB', 'ZAAD', 'BANK_TRANSFER']),
+  method: z.preprocess(
+    (val) => {
+      if (typeof val === 'string') {
+        const normalized = val.trim().toUpperCase().replace(/\s+/g, '_');
+        if (normalized === 'CASH') return 'CASH';
+        if (normalized === 'CARD') return 'CARD';
+        if (normalized === 'EVC_PLUS' || normalized === 'EVCPLUS') return 'EVC_PLUS';
+        if (normalized === 'EDAHAB') return 'EDAHAB';
+        if (normalized === 'ZAAD') return 'ZAAD';
+        if (normalized === 'BANK_TRANSFER') return 'BANK_TRANSFER';
+        return normalized;
+      }
+      return val;
+    },
+    z.enum(['CASH', 'CARD', 'EVC_PLUS', 'EDAHAB', 'ZAAD', 'BANK_TRANSFER'])
+  ),
   amount: z.number().positive('Payment amount must be greater than zero'),
   reference: z.string().trim().optional()
 });
@@ -15,11 +30,11 @@ export const checkoutPaymentSchema = z.object({
 export const checkoutSchema = z.object({
   items: z.array(checkoutItemSchema).min(1, 'Sale must contain at least one item'),
   payments: z.array(checkoutPaymentSchema).min(1, 'At least one payment method is required'),
-  customerId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
-  shiftId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional(),
+  customerId: z.string().optional().refine((val) => !val || /^[0-9a-fA-F]{24}$/.test(val), 'Invalid customer ID'),
+  shiftId: z.string().optional().refine((val) => !val || /^[0-9a-fA-F]{24}$/.test(val), 'Invalid shift ID'),
   couponCode: z.string().trim().optional(),
   redeemLoyaltyPoints: z.number().int().min(0).optional(),
-  idempotencyKey: z.string().trim().min(8).optional(),
+  idempotencyKey: z.string().trim().optional(),
   notes: z.string().trim().optional()
 });
 

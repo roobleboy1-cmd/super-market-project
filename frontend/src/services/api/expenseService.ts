@@ -2,6 +2,15 @@ import api from './client'
 import type { Expense, ExpenseCategory, PaymentMethod } from '@/types'
 import { localStore } from '../dataStore'
 
+const METHOD_MAP: Record<string, string> = {
+  'Cash': 'CASH',
+  'Card': 'CARD',
+  'EVC Plus': 'EVC_PLUS',
+  'eDahab': 'EDAHAB',
+  'ZAAD': 'ZAAD',
+  'Bank Transfer': 'BANK_TRANSFER',
+}
+
 export const expenseService = {
   async getExpenses(category?: string): Promise<Expense[]> {
     try {
@@ -38,48 +47,31 @@ export const expenseService = {
     notes?: string
     recordedBy: string
   }): Promise<Expense> {
-    try {
-      const res = await api.post<any>('/expenses', {
-        expenseNumber: 'EXP-' + new Date().getFullYear() + '-' + Math.floor(100 + Math.random() * 900),
-        category: data.category,
-        description: data.title,
-        amount: data.amount,
-        paymentMethod: data.paymentMethod,
-        paidTo: data.paidTo,
-        paidDate: data.expenseDate,
-        notes: data.notes,
-      })
-      const e = res.data?.data || res.data
-      return {
-        id: e._id || e.id,
-        expenseNumber: e.expenseNumber,
-        title: e.description || data.title,
-        category: e.category,
-        amount: e.amount,
-        paymentMethod: e.paymentMethod,
-        expenseDate: data.expenseDate,
-        paidTo: data.paidTo,
-        recordedBy: data.recordedBy,
-        createdAt: new Date().toISOString(),
-      }
-    } catch {
-      const newExp: Expense = {
-        ...data,
-        id: 'exp-' + Date.now(),
-        expenseNumber: 'EXP-' + new Date().getFullYear() + '-' + Math.floor(100 + Math.random() * 900),
-        createdAt: new Date().toISOString(),
-      }
-      localStore.expenses.unshift(newExp)
-      return newExp
+    const res = await api.post<any>('/expenses', {
+      category: data.category,
+      description: data.title,
+      amount: data.amount,
+      paymentMethod: METHOD_MAP[data.paymentMethod] || 'CASH',
+      paidTo: data.paidTo,
+      paidDate: new Date(data.expenseDate || Date.now()).toISOString(),
+      notes: data.notes,
+    })
+    const e = res.data?.data || res.data
+    return {
+      id: e._id || e.id,
+      expenseNumber: e.expenseNumber,
+      title: e.description || data.title,
+      category: e.category,
+      amount: e.amount,
+      paymentMethod: data.paymentMethod,
+      expenseDate: data.expenseDate,
+      paidTo: data.paidTo,
+      recordedBy: data.recordedBy,
+      createdAt: new Date().toISOString(),
     }
   },
 
   async deleteExpense(id: string): Promise<void> {
-    try {
-      await api.delete('/expenses/' + id)
-    } catch {
-      const idx = localStore.expenses.findIndex((e) => e.id === id)
-      if (idx !== -1) localStore.expenses.splice(idx, 1)
-    }
+    await api.delete('/expenses/' + id)
   },
 }

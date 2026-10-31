@@ -15,13 +15,64 @@ export interface FinancialReportData {
   averageBasketSize: number
 }
 
+export function mapProfitReport(raw: any, range: string): FinancialReportData {
+  const m = raw?.metrics || raw || {}
+  const salesRevenue = m.netSales ?? m.grossSales ?? m.salesRevenue ?? 0
+  const costOfGoodsSold = m.costOfGoodsSold ?? 0
+  const grossProfit = m.grossProfit ?? (salesRevenue - costOfGoodsSold)
+  const grossMarginPercentage = m.grossProfitMargin ?? m.grossMarginPercentage ?? (salesRevenue > 0 ? (grossProfit / salesRevenue) * 100 : 0)
+  const discountsGiven = m.totalDiscounts ?? m.discountsGiven ?? 0
+  const refundsProcessed = m.totalRefunds ?? m.refundsProcessed ?? 0
+  const recordedOperatingExpenses = m.operatingExpenses ?? m.recordedOperatingExpenses ?? 0
+  const netOperatingResult = m.netOperatingResult ?? (grossProfit - recordedOperatingExpenses)
+  const transactionCount = m.orderCount ?? m.transactionCount ?? 0
+  const averageBasketSize = transactionCount > 0 ? salesRevenue / transactionCount : 0
+
+  return {
+    period: range.replace('_', ' ').toUpperCase(),
+    salesRevenue: Number(salesRevenue) || 0,
+    costOfGoodsSold: Number(costOfGoodsSold) || 0,
+    grossProfit: Number(grossProfit) || 0,
+    grossMarginPercentage: Number(Number(grossMarginPercentage).toFixed(1)) || 0,
+    discountsGiven: Number(discountsGiven) || 0,
+    refundsProcessed: Number(refundsProcessed) || 0,
+    recordedOperatingExpenses: Number(recordedOperatingExpenses) || 0,
+    netOperatingResult: Number(netOperatingResult) || 0,
+    transactionCount: Number(transactionCount) || 0,
+    averageBasketSize: Number(Number(averageBasketSize).toFixed(2)) || 0,
+  }
+}
+
 export const reportService = {
   async getFinancialReport(range: 'today' | 'this_week' | 'this_month' | 'this_year' = 'this_month'): Promise<FinancialReportData> {
     try {
-      const res = await api.get<{ data: FinancialReportData }>(`/reports/financial?range=${range}`)
-      return res.data.data
+      const now = new Date()
+      let startDate: string | undefined
+      const endDate = now.toISOString()
+
+      if (range === 'today') {
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+        startDate = start.toISOString()
+      } else if (range === 'this_week') {
+        const start = new Date(now.setDate(now.getDate() - now.getDay()))
+        startDate = start.toISOString()
+      } else if (range === 'this_month') {
+        const start = new Date(now.getFullYear(), now.getMonth(), 1)
+        startDate = start.toISOString()
+      } else if (range === 'this_year') {
+        const start = new Date(now.getFullYear(), 0, 1)
+        startDate = start.toISOString()
+      }
+
+      const params: any = {}
+      if (startDate) params.startDate = startDate
+      if (endDate) params.endDate = endDate
+
+      const res = await api.get<any>('/reports/profit', { params })
+      const raw = res.data?.data || res.data
+      return mapProfitReport(raw, range)
     } catch {
-      // Dynamic computation
+      // Dynamic computation fallback from live dataStore
       const sales = localStore.sales
       const totalRevenue = sales.reduce((acc, s) => acc + s.total, 0) || 12450.0
       const cogs = sales.reduce(

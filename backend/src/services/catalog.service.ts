@@ -100,6 +100,54 @@ export class CatalogService {
       throw new ConflictError(`Product with Barcode '${data.barcode}' already exists.`);
     }
 
+    // Resolve category
+    const catId = (data as any).category || (data as any).categoryId;
+    if (catId && mongoose.Types.ObjectId.isValid(catId)) {
+      data.category = new mongoose.Types.ObjectId(catId);
+    } else {
+      const defaultCat = await Category.findOne({ isActive: true });
+      if (defaultCat) data.category = defaultCat._id as any;
+    }
+    delete (data as any).categoryId;
+
+    // Resolve brand
+    const brandId = (data as any).brand || (data as any).brandId;
+    if (brandId && mongoose.Types.ObjectId.isValid(brandId)) {
+      data.brand = new mongoose.Types.ObjectId(brandId);
+    } else {
+      delete (data as any).brand;
+    }
+    delete (data as any).brandId;
+
+    // Resolve defaultSupplier
+    const supId = (data as any).defaultSupplier || (data as any).supplierId;
+    if (supId && mongoose.Types.ObjectId.isValid(supId)) {
+      data.defaultSupplier = new mongoose.Types.ObjectId(supId);
+    } else {
+      delete (data as any).defaultSupplier;
+    }
+    delete (data as any).supplierId;
+
+    // Resolve unit
+    if (!data.unit || !mongoose.Types.ObjectId.isValid(data.unit as any)) {
+      const unitDoc = await Unit.findOne({
+        $or: [{ symbol: data.unit as any }, { name: data.unit as any }, { isActive: true }]
+      });
+      if (unitDoc) {
+        data.unit = unitDoc._id as any;
+      }
+    }
+
+    // Resolve initial stock
+    if (data.currentStock === undefined && (data as any).quantity !== undefined) {
+      data.currentStock = Number((data as any).quantity) || 0;
+    }
+    delete (data as any).quantity;
+
+    if ((data as any).trackExpiry !== undefined && data.isExpiringProduct === undefined) {
+      data.isExpiringProduct = Boolean((data as any).trackExpiry);
+    }
+
     const product = await Product.create(data);
 
     if (userId) {
@@ -130,7 +178,60 @@ export class CatalogService {
       }
     }
 
-    const product = await Product.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true });
+    // Resolve references if provided
+    const catId = (data as any).category || (data as any).categoryId;
+    if (catId) {
+      if (mongoose.Types.ObjectId.isValid(catId)) {
+        data.category = new mongoose.Types.ObjectId(catId);
+      }
+      delete (data as any).categoryId;
+    }
+
+    const brandId = (data as any).brand || (data as any).brandId;
+    if (brandId !== undefined) {
+      if (brandId && mongoose.Types.ObjectId.isValid(brandId)) {
+        data.brand = new mongoose.Types.ObjectId(brandId);
+      } else {
+        delete (data as any).brand;
+      }
+      delete (data as any).brandId;
+    }
+
+    const supId = (data as any).defaultSupplier || (data as any).supplierId;
+    if (supId !== undefined) {
+      if (supId && mongoose.Types.ObjectId.isValid(supId)) {
+        data.defaultSupplier = new mongoose.Types.ObjectId(supId);
+      } else {
+        delete (data as any).defaultSupplier;
+      }
+      delete (data as any).supplierId;
+    }
+
+    if (data.unit && !mongoose.Types.ObjectId.isValid(data.unit as any)) {
+      const unitDoc = await Unit.findOne({
+        $or: [{ symbol: data.unit as any }, { name: data.unit as any }]
+      });
+      if (unitDoc) {
+        data.unit = unitDoc._id as any;
+      } else {
+        delete (data as any).unit;
+      }
+    }
+
+    if (data.currentStock === undefined && (data as any).quantity !== undefined) {
+      data.currentStock = Number((data as any).quantity) || 0;
+    }
+    delete (data as any).quantity;
+
+    if ((data as any).trackExpiry !== undefined && data.isExpiringProduct === undefined) {
+      data.isExpiringProduct = Boolean((data as any).trackExpiry);
+    }
+
+    const product = await Product.findByIdAndUpdate(id, { $set: data }, { new: true, runValidators: true })
+      .populate('category', 'name code')
+      .populate('brand', 'name')
+      .populate('unit', 'name symbol precision')
+      .populate('defaultSupplier', 'name companyName phone');
     if (!product) {
       throw new NotFoundError('Product not found');
     }

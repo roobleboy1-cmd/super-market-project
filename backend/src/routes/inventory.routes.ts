@@ -89,4 +89,11 @@ router.post(
   InventoryController.approveCount
 );
 
+router.get(
+  '/batches',
+  authenticate,
+  requirePermission('inventory:view'),
+  InventoryController.getLots
+);
+
 export default router;

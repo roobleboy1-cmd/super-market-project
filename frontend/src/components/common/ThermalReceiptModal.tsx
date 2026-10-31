@@ -121,8 +121,8 @@ export const ThermalReceiptModal: React.FC<ThermalReceiptModalProps> = ({ sale, 
                 <tbody>
                   {sale.items.map((item, idx) => (
                     <tr key={idx} className="border-b border-[#E2E8F0]">
-                      <td className="py-1 truncate max-w-[110px]" title={item.name}>
-                        {item.name}
+                      <td className="py-1 truncate max-w-[110px]" title={item.productName || item.name}>
+                        {item.productName || item.name}
                       </td>
                       <td className="py-1 text-center">{item.quantity}</td>
                       <td className="py-1 text-right">{item.unitPrice.toFixed(2)}</td>

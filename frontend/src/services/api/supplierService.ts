@@ -50,71 +50,58 @@ export const supplierService = {
   },
 
   async createSupplier(data: Omit<Supplier, 'id' | 'createdAt' | 'currentBalance'>): Promise<Supplier> {
-    try {
-      const res = await api.post<any>('/suppliers', {
-        name: data.contactPerson || data.name,
-        companyName: data.name,
-        email: data.email,
-        phone: data.phone,
-        address: data.address,
-        paymentTerms: data.paymentTerms,
-      })
-      const s = res.data?.data || res.data
-      return {
-        id: s._id || s.id,
-        name: s.companyName || s.name,
-        contactPerson: s.name,
-        phone: s.phone,
-        email: s.email || '',
-        address: s.address || '',
-        paymentTerms: s.paymentTerms || 'Net 30',
-        currentBalance: 0,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-      }
-    } catch {
-      const newSup: Supplier = {
-        ...data,
-        id: 'sup-' + Date.now(),
-        currentBalance: 0,
-        createdAt: new Date().toISOString(),
-      }
-      localStore.suppliers.push(newSup)
-      return newSup
+    const res = await api.post<any>('/suppliers', {
+      name: data.contactPerson || data.name,
+      companyName: data.name,
+      email: data.email || undefined,
+      phone: data.phone,
+      address: data.address || undefined,
+      taxNumber: data.taxId || undefined,
+      paymentTerms: data.paymentTerms || 'Net 30',
+    })
+    const s = res.data?.data || res.data
+    return {
+      id: s._id || s.id,
+      name: s.companyName || s.name,
+      contactPerson: s.name,
+      phone: s.phone,
+      email: s.email || '',
+      address: s.address || '',
+      taxId: s.taxNumber || '',
+      paymentTerms: s.paymentTerms || 'Net 30',
+      currentBalance: 0,
+      status: 'active',
+      createdAt: new Date().toISOString(),
     }
   },
 
   async updateSupplier(id: string, data: Partial<Supplier>): Promise<Supplier> {
-    try {
-      const res = await api.put<any>('/suppliers/' + id, data)
-      const s = res.data?.data || res.data
-      return {
-        id: s._id || s.id,
-        name: s.companyName || s.name,
-        contactPerson: s.name,
-        phone: s.phone,
-        email: s.email || '',
-        address: s.address || '',
-        paymentTerms: s.paymentTerms || 'Net 30',
-        currentBalance: s.balance ?? 0,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-      }
-    } catch {
-      const idx = localStore.suppliers.findIndex((s) => s.id === id)
-      if (idx === -1) throw new Error('Supplier not found')
-      const updated = { ...localStore.suppliers[idx], ...data }
-      localStore.suppliers[idx] = updated
-      return updated
+    const payload: any = { ...data }
+    if (data.name) payload.companyName = data.name
+    if (data.contactPerson) payload.name = data.contactPerson
+    if (data.taxId !== undefined) payload.taxNumber = data.taxId
+    delete payload.id
+    delete payload.currentBalance
+    delete payload.createdAt
+
+    const res = await api.patch<any>('/suppliers/' + id, payload)
+    const s = res.data?.data || res.data
+    return {
+      id: s._id || s.id,
+      name: s.companyName || s.name,
+      contactPerson: s.name,
+      phone: s.phone,
+      email: s.email || '',
+      address: s.address || '',
+      taxId: s.taxNumber || '',
+      paymentTerms: s.paymentTerms || 'Net 30',
+      currentBalance: s.balance ?? 0,
+      status: 'active',
+      createdAt: new Date().toISOString(),
     }
   },
 
   async deleteSupplier(id: string): Promise<void> {
-    try {
-      await api.delete('/suppliers/' + id)
-    } catch {
-      const idx = localStore.suppliers.findIndex((s) => s.id === id)
-      if (idx !== -1) localStore.suppliers.splice(idx, 1)
-    }
+    await api.delete('/suppliers/' + id)
   },
 }

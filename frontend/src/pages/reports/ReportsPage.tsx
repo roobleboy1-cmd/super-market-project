@@ -151,9 +151,9 @@ export const ReportsPage: React.FC = () => {
             Net Operating Result = (Sales Revenue - Cost of Goods Sold) - Recorded Operating Expenses
           </code>
           <p className="text-[#64748B] dark:text-[#9CA3AF] mt-1">
-            Current Calculation: (${pnl?.salesRevenue.toFixed(2)} - ${pnl?.costOfGoodsSold.toFixed(2)}) - ${pnl?.recordedOperatingExpenses.toFixed(2)} ={' '}
+            Current Calculation: (${(pnl?.salesRevenue ?? 0).toFixed(2)} - ${(pnl?.costOfGoodsSold ?? 0).toFixed(2)}) - ${(pnl?.recordedOperatingExpenses ?? 0).toFixed(2)} ={' '}
             <strong className="text-blue-700 dark:text-blue-300">
-              ${pnl?.netOperatingResult.toFixed(2)}
+              ${(pnl?.netOperatingResult ?? 0).toFixed(2)}
             </strong>
           </p>
         </div>
