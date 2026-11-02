@@ -42,9 +42,17 @@ export class PurchaseController {
 
   static async receiveGoods(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
+      const rawList = req.body.receivedItems || req.body.receivedQuantities || [];
+      const items = rawList.map((i: any) => ({
+        productId: i.productId,
+        receivedQuantity: Number(i.receivedQuantity ?? i.quantityReceivedNow ?? 0),
+        batchNumber: i.batchNumber,
+        expirationDate: i.expirationDate,
+      }));
+
       const purchase = await PurchaseService.receiveGoods(
         paramStr(req.params.id),
-        req.body.receivedItems,
+        items,
         req.user!.id
       );
       Send.success(res, purchase);

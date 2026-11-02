@@ -6,14 +6,16 @@ export const createPurchaseSchema = z.object({
     .array(
       z.object({
         productId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Valid product ID required'),
-        orderedQuantity: z.number().positive('Ordered quantity must be greater than zero'),
+        orderedQuantity: z.number().positive().optional(),
+        quantityOrdered: z.number().positive().optional(),
         unitCost: z.number().min(0, 'Unit cost must be non-negative'),
         taxRate: z.number().min(0).default(0)
       })
     )
     .min(1, 'Purchase must have at least one line item'),
-  expectedDeliveryDate: z.string().datetime().optional(),
-  notes: z.string().trim().optional()
+  expectedDeliveryDate: z.string().optional(),
+  notes: z.string().trim().optional(),
+  createdBy: z.string().optional()
 });
 
 export const receivePurchaseSchema = z.object({
@@ -21,13 +23,26 @@ export const receivePurchaseSchema = z.object({
     .array(
       z.object({
         productId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Valid product ID required'),
-        receivedQuantity: z.number().min(0, 'Received quantity cannot be negative'),
+        receivedQuantity: z.number().min(0).optional(),
+        quantityReceivedNow: z.number().min(0).optional(),
         batchNumber: z.string().trim().optional(),
         expirationDate: z.string().optional()
       })
     )
-    .min(1, 'At least one item must be received'),
-  notes: z.string().trim().optional()
+    .optional(),
+  receivedQuantities: z
+    .array(
+      z.object({
+        productId: z.string().regex(/^[0-9a-fA-F]{24}$/, 'Valid product ID required'),
+        quantityReceivedNow: z.number().min(0).optional(),
+        receivedQuantity: z.number().min(0).optional(),
+        batchNumber: z.string().trim().optional(),
+        expirationDate: z.string().optional()
+      })
+    )
+    .optional(),
+  notes: z.string().trim().optional(),
+  receivedBy: z.string().optional()
 });
 
 export const cancelPurchaseSchema = z.object({

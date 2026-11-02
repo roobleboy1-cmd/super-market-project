@@ -2,11 +2,39 @@ import api from './client'
 import type { PurchaseOrder, POLineItem } from '@/types'
 import { localStore } from '../dataStore'
 
+export function mapPurchaseOrderFromBackend(p: any): PurchaseOrder {
+  return {
+    id: p._id || p.id,
+    poNumber: p.purchaseOrderNumber || p.poNumber || 'PO-' + p._id,
+    supplierId: p.supplierId?._id || p.supplierId || '',
+    supplierName: p.supplierId?.companyName || p.supplierId?.name || p.supplierName || 'Supplier',
+    status: (p.status === 'draft' ? 'ordered' : p.status) as any,
+    items: (p.items || []).map((i: any) => ({
+      productId: i.productId?._id || i.productId || '',
+      productName: i.productName || i.name || 'Product',
+      sku: i.sku || '',
+      quantityOrdered: i.orderedQuantity ?? i.quantityOrdered ?? 0,
+      quantityReceived: i.receivedQuantity ?? i.quantityReceived ?? 0,
+      unitCost: i.unitCost ?? 0,
+      subtotal: i.subtotal ?? (Number(i.orderedQuantity ?? i.quantityOrdered ?? 0) * Number(i.unitCost ?? 0)),
+    })),
+    totalAmount: p.grandTotal ?? p.totalAmount ?? 0,
+    paidAmount: p.paidAmount ?? 0,
+    paymentStatus: p.paymentStatus || 'unpaid',
+    expectedDeliveryDate: p.expectedDeliveryDate ? new Date(p.expectedDeliveryDate).toISOString().slice(0, 10) : undefined,
+    notes: p.notes,
+    createdBy: p.createdBy?.name || p.createdBy || 'Staff User',
+    receivedAt: p.receivedAt ? new Date(p.receivedAt).toISOString() : undefined,
+    createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
+  }
+}
+
 export const purchaseOrderService = {
   async getPurchaseOrders(): Promise<PurchaseOrder[]> {
     try {
-      const res = await api.get<{ data: PurchaseOrder[] }>('/purchases')
-      return res.data.data
+      const res = await api.get<any>('/purchases')
+      const raw = Array.isArray(res.data?.data) ? res.data.data : (Array.isArray(res.data) ? res.data : [])
+      return raw.map(mapPurchaseOrderFromBackend)
     } catch {
       return localStore.purchaseOrders
     }
@@ -14,8 +42,9 @@ export const purchaseOrderService = {
 
   async getPOById(id: string): Promise<PurchaseOrder> {
     try {
-      const res = await api.get<{ data: PurchaseOrder }>(`/purchases/${id}`)
-      return res.data.data
+      const res = await api.get<any>(`/purchases/${id}`)
+      const raw = res.data?.data || res.data
+      return mapPurchaseOrderFromBackend(raw)
     } catch {
       const po = localStore.purchaseOrders.find((p) => p.id === id || p.poNumber === id)
       if (!po) throw new Error('Purchase order not found')
@@ -30,58 +59,26 @@ export const purchaseOrderService = {
     notes?: string
     createdBy: string
   }): Promise<PurchaseOrder> {
-    try {
-      const res = await api.post<{ data: PurchaseOrder }>('/purchases', payload)
-      return res.data.data
-    } catch {
-      const supplier = localStore.suppliers.find((s) => s.id === payload.supplierId)
-      if (!supplier) throw new Error('Supplier not found')
+    const backendItems = payload.items.map((i) => ({
+      productId: i.productId,
+      orderedQuantity: Number(i.quantityOrdered) || 1,
+      unitCost: Number(i.unitCost) || 0,
+      taxRate: 0,
+    }))
 
-      const lineItems: POLineItem[] = payload.items.map((item) => {
-        const prod = localStore.products.find((p) => p.id === item.productId)
-        return {
-          productId: item.productId,
-          productName: prod?.name || 'Item',
-          sku: prod?.sku || 'SKU',
-          quantityOrdered: item.quantityOrdered,
-          quantityReceived: 0,
-          unitCost: item.unitCost,
-          subtotal: item.quantityOrdered * item.unitCost,
-        }
-      })
-
-      const totalAmount = lineItems.reduce((acc, item) => acc + item.subtotal, 0)
-      const poNumber = `PO-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`
-
-      const newPO: PurchaseOrder = {
-        id: `po-${Date.now()}`,
-        poNumber,
-        supplierId: supplier.id,
-        supplierName: supplier.name,
-        status: 'ordered',
-        items: lineItems,
-        totalAmount,
-        paidAmount: 0,
-        paymentStatus: 'unpaid',
-        expectedDeliveryDate: payload.expectedDeliveryDate,
-        notes: payload.notes,
-        createdBy: payload.createdBy,
-        createdAt: new Date().toISOString(),
-      }
-
-      localStore.purchaseOrders.unshift(newPO)
-      supplier.currentBalance += totalAmount
-
-      localStore.logAction(
-        payload.createdBy,
-        'Inventory Manager',
-        'CREATE_PO',
-        'Purchases',
-        `Created ${poNumber} for supplier ${supplier.name} totaling $${totalAmount.toFixed(2)}`
-      )
-
-      return newPO
+    const body: any = {
+      supplierId: payload.supplierId,
+      items: backendItems,
+      notes: payload.notes,
     }
+
+    if (payload.expectedDeliveryDate) {
+      body.expectedDeliveryDate = new Date(payload.expectedDeliveryDate).toISOString()
+    }
+
+    const res = await api.post<any>('/purchases', body)
+    const raw = res.data?.data || res.data
+    return mapPurchaseOrderFromBackend(raw)
   },
 
   async receivePOItems(
@@ -89,85 +86,24 @@ export const purchaseOrderService = {
     receivedQuantities: { productId: string; quantityReceivedNow: number }[],
     receivedBy: string
   ): Promise<PurchaseOrder> {
-    try {
-      const res = await api.post<{ data: PurchaseOrder }>(`/purchases/${poId}/receive`, {
-        receivedQuantities,
-        receivedBy,
-      })
-      return res.data.data
-    } catch {
-      const po = localStore.purchaseOrders.find((p) => p.id === poId)
-      if (!po) throw new Error('Purchase order not found')
+    const receivedItems = receivedQuantities.map((r) => ({
+      productId: r.productId,
+      receivedQuantity: Number(r.quantityReceivedNow) || 0,
+      batchNumber: `BATCH-${Date.now().toString().slice(-6)}`,
+    }))
 
-      let allComplete = true
-      let anyReceived = false
-
-      for (const rec of receivedQuantities) {
-        const line = po.items.find((i) => i.productId === rec.productId)
-        if (line && rec.quantityReceivedNow > 0) {
-          line.quantityReceived += rec.quantityReceivedNow
-          anyReceived = true
-
-          // Update inventory stock now that goods are confirmed received
-          const prod = localStore.products.find((p) => p.id === rec.productId)
-          if (prod) {
-            const prev = prod.quantity
-            prod.quantity += rec.quantityReceivedNow
-            // Update cost price to latest received cost if available
-            prod.costPrice = line.unitCost
-            prod.updatedAt = new Date().toISOString()
-
-            localStore.stockMovements.unshift({
-              id: `sm-${Date.now()}-${rec.productId}`,
-              productId: prod.id,
-              productName: prod.name,
-              type: 'purchase',
-              quantityChange: rec.quantityReceivedNow,
-              previousQty: prev,
-              newQty: prod.quantity,
-              reason: `Received from ${po.poNumber} (${po.supplierName})`,
-              referenceNo: po.poNumber,
-              performedBy: receivedBy,
-              createdAt: new Date().toISOString(),
-            })
-          }
-        }
-      }
-
-      for (const item of po.items) {
-        if (item.quantityReceived < item.quantityOrdered) {
-          allComplete = false
-          break
-        }
-      }
-
-      po.status = allComplete ? 'received' : anyReceived ? 'partially_received' : po.status
-      if (allComplete) po.receivedAt = new Date().toISOString()
-
-      localStore.logAction(
-        receivedBy,
-        'Inventory Manager',
-        'RECEIVE_PO',
-        'Purchases',
-        `Received items for ${po.poNumber} (Status: ${po.status})`
-      )
-
-      return po
-    }
+    const res = await api.post<any>(`/purchases/${poId}/receive`, {
+      receivedItems,
+      receivedQuantities: receivedItems,
+      receivedBy,
+    })
+    const raw = res.data?.data || res.data
+    return mapPurchaseOrderFromBackend(raw)
   },
 
   async cancelPO(poId: string, cancelledBy: string, reason: string): Promise<PurchaseOrder> {
-    try {
-      const res = await api.post<{ data: PurchaseOrder }>(`/purchases/${poId}/cancel`, { cancelledBy, reason })
-      return res.data.data
-    } catch {
-      const po = localStore.purchaseOrders.find((p) => p.id === poId)
-      if (!po) throw new Error('Purchase order not found')
-      po.status = 'cancelled'
-      po.notes = (po.notes ? po.notes + '\n' : '') + `[CANCELLED by ${cancelledBy}]: ${reason}`
-
-      localStore.logAction(cancelledBy, 'Manager', 'CANCEL_PO', 'Purchases', `Cancelled ${po.poNumber}: ${reason}`)
-      return po
-    }
+    const res = await api.post<any>(`/purchases/${poId}/cancel`, { cancelledBy, reason })
+    const raw = res.data?.data || res.data
+    return mapPurchaseOrderFromBackend(raw)
   },
 }

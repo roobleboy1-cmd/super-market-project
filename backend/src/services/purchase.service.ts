@@ -87,7 +87,8 @@ export class PurchaseService {
       const prod = productMap.get(item.productId);
       if (!prod) throw new NotFoundError(`Product not found: ${item.productId}`);
 
-      const itemSubtotal = Number((item.orderedQuantity * item.unitCost).toFixed(2));
+      const qty = item.orderedQuantity ?? item.quantityOrdered ?? 1;
+      const itemSubtotal = Number((qty * item.unitCost).toFixed(2));
       const taxRate = item.taxRate || 0;
       const itemTax = Number(((itemSubtotal * taxRate) / 100).toFixed(2));
       const total = Number((itemSubtotal + itemTax).toFixed(2));
@@ -99,7 +100,7 @@ export class PurchaseService {
         productId: prod._id as any,
         productName: prod.name,
         sku: prod.sku,
-        orderedQuantity: item.orderedQuantity,
+        orderedQuantity: qty,
         receivedQuantity: 0,
         unitCost: item.unitCost,
         taxRate,
